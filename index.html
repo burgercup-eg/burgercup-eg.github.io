@@ -213,7 +213,7 @@ function mirrorAll(){try{for(var i=0;i<localStorage.length;i++){var k=localStora
 recover();
 function ask(){try{if(navigator.storage&&navigator.storage.persist){navigator.storage.persisted().then(function(p){if(p){window.PERSIST=true;return}navigator.storage.persist().then(function(g){window.PERSIST=!!g;if(window.PERSIST&&window.render)try{render()}catch(e){}})})}}catch(e){}}
 window.addEventListener('load',ask);document.addEventListener('click',function f(){ask();document.removeEventListener('click',f)});
-if('serviceWorker' in navigator&&location.protocol.indexOf('http')==0){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')==0){window.addEventListener('load',function(){var hadCtl=!!navigator.serviceWorker.controller;navigator.serviceWorker.addEventListener('controllerchange',function(){if(hadCtl){hadCtl=false;location.reload()}});navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(function(r){try{r.update()}catch(e){}}).catch(function(){})})}
 })();
 </script>
 </head>
@@ -404,7 +404,7 @@ function render(){
   h+=`<div class="cash-row"><button class="cash-clear" ${shift.orders.length?'':'disabled'} data-a="undo">مسح آخر طلب نهائياً</button><button class="${confirm?'cash-danger':'cash-clear'}" data-a="close">${confirm?'تأكيد: قفل الشيفت وتصفير':'قفل الشيفت'}</button>${confirm?'<button class="cash-clear" data-a="back">رجوع</button>':''}</div>`;
   h+=backupHtml();
   if(hist.length)h+=`<h2>الشيفتات اللي فاتت</h2><p class="cash-legend">آخر 5 شيفتات تقريرها محفوظ وتقدر تبعته تاني.</p><ul class="cash-lines">`+hist.map((x,hx)=>`<li><div class="cash-l1"><span class="cash-ln">${dmy(x.d)}</span><span class="cash-lp">${x.n} طلب</span><span class="cash-lp"><i class="cash-mny">${n(x.total)}</i></span></div>${x.r?`<div class="cash-row"><button class="cash-clear" data-a="hwa" data-i="${hx}">ابعت التقرير</button><button class="cash-clear" data-a="hcp" data-i="${hx}">نسخ</button></div>`:''}</li>`).join('')+`</ul>`;
-  h+=`<p class="cash-legend">الحفظ على تليفونك بس. لو مسحت بيانات المتصفح أو فتحت من جهاز تاني هتلاقيها فاضية.${window.PERSIST===true?' ✅ التخزين محمي من المسح التلقائي.':''}</p></section>`;
+  h+=`<p class="cash-legend">الحفظ على تليفونك بس. لو مسحت بيانات المتصفح أو فتحت من جهاز تاني هتلاقيها فاضية.${window.PERSIST===true?' ✅ التخزين محمي من المسح التلقائي.':''} <b style="opacity:.55;font-weight:400">· نسخة 4</b></p></section>`;
   h+=pinModal();
  }
  document.getElementById('root').innerHTML=h+'</main>';
