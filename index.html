@@ -373,6 +373,7 @@ function moneyHtml(tot,fees){
 function pinModal(){if(!pinMode)return '';const isSet=pinMode=='set';
  return `<div class="cash-pinwrap"><div class="cash-pinbox"><div class="cash-pint">${isSet?'رقم سري للمبلغ':'اكتب الرقم السري'}</div><div class="cash-pinsub">${isSet?'من 4 لـ 8 أرقام. الرقم بيتحفظ على التليفون ده بس ومش بيتبعت لأي حتة.':'المبلغ بيفضل مفتوح دقيقتين وبعدها يتقفل لوحده.'}</div><input id="cash-pin1" class="cash-pinin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password" placeholder="••••">${isSet?'<input id="cash-pin2" class="cash-pinin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password" placeholder="نفس الرقم تاني">':''}<div class="cash-pinmsg" id="cash-pinmsg">${pinMsg}</div><div class="cash-pinbtns"><button class="cash-hbtn go" data-a="pinok">تأكيد</button><button class="cash-hbtn" data-a="pincancel">إلغاء</button></div></div></div>`;
 }
+let LOGOIMG=null;try{const _li=new Image();_li.onload=()=>{LOGOIMG=_li};_li.src=LOGO}catch(e){}
 let BTON=ld('cash.bt',/Android/i.test(navigator.userAgent||'')?1:0),AUTO=ld('cash.auto',/Android/i.test(navigator.userAgent||'')?1:0),prMsg='';
 const isAnd=()=>/Android/i.test(navigator.userAgent||'');
 const FNT=(sz,b)=>((b?'700 ':'400 ')+sz+'px system-ui,"Noto Sans Arabic","Segoe UI",Tahoma,sans-serif');
@@ -383,7 +384,6 @@ function receiptCanvas(o,idx,lab){
  const W=(pw==58?384:576),P=Math.round(W*.045);
  const cv=document.createElement('canvas');cv.width=W;cv.height=4600;
  const x=cv.getContext('2d');
- x.fillStyle='#fff';x.fillRect(0,0,W,cv.height);
  x.fillStyle='#000';x.textBaseline='top';x.direction='rtl';
  const body=Math.round(W*.048),small=Math.round(W*.038),mid=Math.round(W*.056),big=Math.round(W*.085);
  let y=P;
@@ -438,9 +438,16 @@ function receiptCanvas(o,idx,lab){
  y+=Math.round(W*.05);
  const H=Math.min(cv.height,Math.ceil(y));
  const out=document.createElement('canvas');out.width=W;out.height=H;
- out.getContext('2d').drawImage(cv,0,0);
+ const ox=out.getContext('2d');
+ ox.fillStyle='#fff';ox.fillRect(0,0,W,H);
+ if(LOGOIMG&&LOGOIMG.complete&&LOGOIMG.naturalWidth){
+  const wmW=Math.round(W*0.52),wmH=Math.round(wmW*LOGOIMG.naturalHeight/LOGOIMG.naturalWidth);
+  ox.globalAlpha=0.12;ox.drawImage(LOGOIMG,Math.round((W-wmW)/2),Math.max(0,Math.round(H*0.5-wmH/2)),wmW,wmH);ox.globalAlpha=1;
+ }
+ ox.drawImage(cv,0,0);
  return out;
 }
+const BAY16=[8,136,40,168,200,72,232,104,56,184,24,152,248,120,216,88];
 function escPosBytes(cv){
  const W=cv.width,H=cv.height,bytes=W>>3;
  const img=cv.getContext('2d').getImageData(0,0,W,H).data;
@@ -453,7 +460,7 @@ function escPosBytes(cv){
    let b=0;
    for(let k=0;k<8;k++){
     const px=bx*8+k;
-    if(px<W){const o4=(yy*W+px)*4;const lum=(img[o4]*0.299+img[o4+1]*0.587+img[o4+2]*0.114)*(img[o4+3]/255)+(255*(1-img[o4+3]/255));if(lum<176)b|=0x80>>k;}
+    if(px<W){const o4=(yy*W+px)*4;const lum=(img[o4]*0.299+img[o4+1]*0.587+img[o4+2]*0.114)*(img[o4+3]/255)+(255*(1-img[o4+3]/255));if(lum<BAY16[((yy&3)<<2)|(px&3)])b|=0x80>>k;}
    }
    buf[i++]=b;
   }
