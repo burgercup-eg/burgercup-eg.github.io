@@ -516,7 +516,7 @@ function sSignIn(email,pass){return sJ('https://identitytoolkit.googleapis.com/v
 const sP=p=>'shops/'+FBCFG.shop+'/'+p;
 function sGet(p){return sTok().then(t=>fetch(FBCFG.db+'/'+p+'.json?auth='+t)).then(r=>r.json()).then(j=>{if(j&&j.error)throw new Error(j.error);return j})}
 function sSet(p,v){return sTok().then(t=>fetch(FBCFG.db+'/'+p+'.json?auth='+t,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)})).then(r=>r.json()).then(j=>{if(j&&j.error)throw new Error(j.error);return j})}
-function sStamp(o){const c=Object.assign({},o);if(!c.id)c.id='o-'+(o.no||0)+'-'+(o.t||0);if(!c.upd)c.upd=o.t||Date.now();return c}
+function sStamp(o){const c=Object.assign({},o);if(!c.id)c.id='o-'+(o.no||0)+'-'+(o.t||0);if(!c.upd)c.upd=o.t||Date.now();if(!Array.isArray(c.l))c.l=[];if(typeof c.total!='number')c.total=Number(c.total)||0;if(typeof c.no!='number')c.no=Number(c.no)||0;return c}
 function sMerge(local,remote){const m={},k=o=>o.id||('o-'+(o.no||0)+'-'+(o.t||0));
  (local||[]).forEach(o=>m[k(o)]=sStamp(o));
  (remote||[]).forEach(o=>{const kk=k(o),c=m[kk];if(!c){m[kk]=sStamp(o);return}m[kk]=((o.upd||0)>(c.upd||0))?sStamp(o):c});
