@@ -1,0 +1,26 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>sync check</title>
+<style>body{font-family:system-ui;background:#111;color:#eee;padding:20px}input,button{font-size:16px;padding:8px;margin:4px}pre{background:#000;color:#0f0;padding:10px;white-space:pre-wrap;font-size:12px}</style>
+<h2>فحص المزامنة (صفحة مؤقتة)</h2>
+<form id="f"><input id="em" value="amar.warka22+burgercup@gmail.com" size="34"><br>
+<input id="pw" type="password" placeholder="password" size="24"><br>
+<button>دخول وفحص</button></form>
+<pre id="out">…</pre>
+<script>
+const CFG={apiKey:"AIzaSyDFELSEtD1cQG8qKAhz-zG53LDQC1jcrcs",databaseURL:"https://burgercup-cashier-default-rtdb.europe-west1.firebasedatabase.app"};
+const out=t=>document.getElementById('out').textContent+=t+"\n";
+document.getElementById('f').onsubmit=async e=>{
+  e.preventDefault();
+  const em=document.getElementById('em').value, pw=document.getElementById('pw').value;
+  try{
+    out("signing in…");
+    const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="+CFG.apiKey,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:pw,returnSecureToken:true})});
+    const j=await r.json();
+    if(!j.idToken){out("SIGNIN FAILED: "+JSON.stringify(j.error||j));return}
+    out("signed in as "+j.email+" (uid "+j.localId+")");
+    const g=await fetch(CFG.databaseURL+"/shops/burgercup/orders/demo-1.json?auth="+j.idToken);
+    out("READ order demo-1: HTTP "+g.status+" -> "+(await g.text()).replace(/\s+/g," ").slice(0,200));
+    const w=await fetch(CFG.databaseURL+"/shops/burgercup/orders/proof-"+Date.now()+".json?auth="+j.idToken,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({no:0,total:0,note:"auth proof"})});
+    out("WRITE proof order: HTTP "+w.status+" -> "+(await w.text()).slice(0,120));
+  }catch(err){out("ERROR "+err.message)}
+};
+</script></html>
