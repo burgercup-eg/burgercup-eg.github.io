@@ -316,10 +316,10 @@ function endEdit(){const gi=editIdx;cur=stash?stash.cur:[];del=stash?stash.del:O
 function done(){if(!cnt(cur)||!delOk())return;cur.forEach(x=>{if(x.p==null)x.p=price(x.k)});if(del.on)saveCust();saveText(edit);edit=-1;const sub=sumOf(cur),fee=feeOf();
  if(editIdx>=0&&shift.orders[editIdx]){const old=shift.orders[editIdx];const o2={no:NO(old,editIdx),t:old.t,total:sub+fee,l:cur,ty:del.on?'d':'t'};if(del.on)o2.d={name:del.name.trim(),phone:del.phone.trim(),addr:del.addr.trim(),note:del.note.trim(),rd:(del.rd||'').trim(),fee:fee,sub:sub,area:del.area||''};shift.orders[editIdx]=o2;if(AUTO&&BTON&&isAnd()){try{rawPrint(o2,editIdx)}catch(e){}}endEdit();return;}
  const o={no:nextNo(),t:Date.now(),total:sub+fee,l:cur,ty:del.on?'d':'t'};if(del.on)o.d={name:del.name.trim(),phone:del.phone.trim(),addr:del.addr.trim(),note:del.note.trim(),rd:(del.rd||'').trim(),fee:fee,sub:sub,area:del.area||''};shift.orders.push(o);if(!shift.start)shift.start=shift.orders[0].t;cur=[];if(o.d){invRet={v:'sell',o:-1,f:ordF,y:0};view='invoice';inv=shift.orders.length-1;pushH();}lastOrd=shift.orders.length-1;del=Object.assign({},DD);save();if(AUTO&&BTON&&isAnd()){try{rawPrint(shift.orders[shift.orders.length-1],shift.orders.length-1)}catch(e){}}render();}
-function undo(){shift.orders.pop();save();render();}
+function undo(){const x=shift.orders.pop();try{if(x&&sOn()){const t=ld('cash.tomb',{})||{};const c=sStamp(x);t[c.id]={no:c.no,t:c.t};sv('cash.tomb',t)}}catch(e){}save();render();}
 function closeShift(){if(editIdx>=0&&!confirm){endEdit();}if(!confirm){confirm=true;return render();}
  const t=LV().reduce((a,o)=>a+(o.d?o.d.sub:o.total),0);if(shift.orders.length)hist=[{d:shift.start,total:t,n:LV().length,r:reportText()}].concat(hist).slice(0,14).map((x,k)=>{if(k>=5&&x.r){x=Object.assign({},x);delete x.r}return x});
- shift={start:0,orders:[]};confirm=false;save();render();}
+ shift={start:0,orders:[]};try{sv('cash.cut',Date.now())}catch(e){}confirm=false;save();render();}
 function delHtml(){let h=`<div class="cash-seg"><button class="${del.on?'':'is-on'}" data-a="typ" data-v="t">تيك أواي</button><button class="${del.on?'is-on':''}" data-a="typ" data-v="d">دليفري</button></div>`;
  if(del.on){h+=`<div class="cash-delf"><input data-f="name" placeholder="اسم العميل (اختياري)" value="${esc(del.name)}"><input data-f="phone" type="tel" inputmode="tel" placeholder="رقم التليفون *" value="${esc(del.phone)}"><input data-f="addr" placeholder="العنوان *" value="${esc(del.addr)}"><select data-f="area"><option value="">المنطقة (اختياري)</option><optgroup label="جوه كفر الشيخ (رسوم ${FEE_IN})">${AREAS.in.map(a=>`<option value="${esc(a)}"${del.area==a?' selected':''}>${esc(a)}</option>`).join('')}</optgroup><optgroup label="برة المدينة (رسوم حسب المنطقة أو يدوي)">${AREAS.out.map(a=>`<option value="${esc(a)}"${del.area==a?' selected':''}>${esc(a)}${afee(a)?' - '+afee(a):''}</option>`).join('')}</optgroup></select>${areaKind(del.area)=='out'?'<p class="cash-cust">'+(afee(del.area)?'برة المدينة: الرسوم المقترحة '+afee(del.area)+' وتقدر تعدلها.':'برة المدينة: اكتب رسوم التوصيل بنفسك.')+'</p>':''}<div class="cash-newa"><input id="cash-newarea" placeholder="منطقة جديدة"><button class="cash-clear" data-a="addin">جوه المدينة</button><button class="cash-clear" data-a="addout">برة المدينة</button></div><button class="cash-clear" data-a="aedit">${areaEdit?'خلاص':'تعديل / مسح المناطق'}</button>${areaEdit?areaPanel():''}<p class="cash-cust" id="cash-cust">${esc(custMsg)}</p><input data-f="note" placeholder="ملاحظات للدليفري" value="${esc(del.note)}"><input data-f="rd" list="cash-rds" placeholder="اسم الطيار (اختياري)" value="${esc(del.rd||'')}"><datalist id="cash-rds">${riders().map(r=>`<option value="${esc(r)}">`).join('')}</datalist><label class="cash-feel">رسوم التوصيل (جنيه)<input data-f="fee" type="number" inputmode="numeric" min="0" value="${del.fee}"></label>${delOk()?'':'<p class="cash-warn">لازم رقم التليفون والعنوان</p>'}</div>`;}
  return h;}
@@ -525,10 +525,13 @@ function sPayload(o,d){const c=sStamp(o);return {id:c.id,no:c.no,t:c.t,upd:c.upd
 function sClaim(){const d=sDev();if(d.range)return Promise.resolve(d.range);
  return sGet(sP('meta/blocks')).then(b=>{b=b||{};let top=0;Object.keys(b).forEach(k=>{top=Math.max(top,(b[k]&&b[k].to)||0)});
   const from=top+1,to=top+1000;return sSet(sP('meta/blocks/'+d.id),{from:from,to:to}).then(()=>{d.range={from:from,to:to};sv(DKEY,d);return d.range})})}
-function sPull(){return Promise.all([sGet(sP('orders')),sGet(sP('prices'))]).then(a=>{
- const o=a[0],pr=a[1]||{};
- const remote=o?Object.keys(o).map(k=>o[k]):[];
- shift.orders=sMerge(shift.orders,remote);
+function sPull(){return Promise.all([sGet(sP('orders')),sGet(sP('prices')),sGet(sP('meta/cut'))]).then(a=>{
+ const o=a[0],pr=a[1]||{},cc=+a[2]||0,cl=+ld('cash.cut',0)||0;
+ if(cc>cl){const old=shift.orders.filter(x=>(x.t||0)<=cc);if(old.length){const keep=shift.orders;shift.orders=old;try{const t=LV().reduce((s2,x)=>s2+(x.d?x.d.sub:x.total),0);hist=[{d:old[0].t,total:t,n:LV().length,r:reportText()}].concat(hist).slice(0,14)}catch(e){}shift.orders=keep.filter(x=>(x.t||0)>cc);if(!shift.orders.length)shift.start=0}sv('cash.cut',cc)}
+ const cut=Math.max(cc,cl),tomb=ld('cash.tomb',{})||{};
+ const remote=o?Object.keys(o).map(k=>o[k]).filter(x=>x&&(x.t||0)>cut):[];
+ const gone={};remote.forEach(x=>{if(x.gone)gone[x.id]=1});Object.keys(tomb).forEach(k=>gone[k]=1);
+ shift.orders=sMerge(shift.orders.filter(x=>(x.t||0)>cut),remote).filter(x=>!gone[x.id]);
  const pupd=ld(PUPDK,{})||{};let ch=false;
  Object.keys(pr).forEach(k=>{const r=pr[k];if(!r)return;const pv=(typeof r=='number')?r:r.p;const pu=(typeof r=='number')?0:(r.upd||0);
   if(pu>(pupd[k]||0)){PR[k]=pv;pupd[k]=pu;ch=true}});
@@ -538,6 +541,10 @@ function sDirty(){const sent=ld(SENTK,{})||{};return shift.orders.filter(o=>{con
 function sPush(list){const d=sDev(),sent=ld(SENTK,{})||{};
  const items=(list&&list.length?list:sDirty());
  let chain=Promise.resolve();
+ const tm=ld('cash.tomb',{})||{};
+ Object.keys(tm).forEach(id=>{chain=chain.then(()=>sSet(sP('orders/'+id),{id:id,no:tm[id].no,t:tm[id].t,upd:Date.now(),dev:d.id,gone:1,total:0,l:[]}))});
+ const cl=+ld('cash.cut',0)||0;
+ if(cl)chain=chain.then(()=>sGet(sP('meta/cut'))).then(c=>{if((+c||0)<cl)return sSet(sP('meta/cut'),cl)});
  items.forEach(o=>{const pay=sPayload(o,d.id);
   chain=chain.then(()=>sGet(sP('orders/'+pay.id))).then(cur=>{if(!cur||(pay.upd||0)>(cur.upd||0))return sSet(sP('orders/'+pay.id),pay)}).then(()=>{sent[pay.id]=pay.upd;sv(SENTK,sent)})});
  const pupd=ld(PUPDK,{})||{};
